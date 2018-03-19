@@ -30,6 +30,11 @@ variable "logs_cdn_subnet" {
   description = "Name of the subnet to place the EBS volume"
 }
 
+variable "elb_external_certname" {
+  type        = "string"
+  description = "The ACM cert domain name to find the ARN of"
+}
+
 # Resources
 # --------------------------------------------------------------
 terraform {
@@ -42,11 +47,16 @@ provider "aws" {
   version = "1.0.0"
 }
 
+data "aws_acm_certificate" "elb_external_cert" {
+  domain   = "${var.elb_external_certname}"
+  statuses = ["ISSUED"]
+}
+
 resource "aws_elb" "logs-cdn_external_elb" {
-  name            = "${var.stackname}-logs-cdn"
-  subnets         = ["${data.terraform_remote_state.infra_networking.public_subnet_ids}"]
-  security_groups = ["${data.terraform_remote_state.infra_security_groups.sg_offsite_ssh_id}"]
-  internal        = "false"
+  name                             = "${var.stackname}-logs-cdn"
+  subnets                          = ["${data.terraform_remote_state.infra_networking.public_subnet_ids}"]
+  security_groups                  = ["${data.terraform_remote_state.infra_security_groups.sg_offsite_ssh_id}"]
+  internal                         = "false"
 
   access_logs {
     bucket        = "${data.terraform_remote_state.infra_monitoring.aws_logging_bucket_id}"
@@ -58,21 +68,24 @@ resource "aws_elb" "logs-cdn_external_elb" {
     instance_port     = "6514"
     instance_protocol = "tcp"
     lb_port           = "6514"
-    lb_protocol       = "tcp"
+    lb_protocol       = "ssl"
+    ssl_certificate_id = "${data.aws_acm_certificate.elb_external_cert.arn}"
   }
 
   listener {
     instance_port     = "6515"
     instance_protocol = "tcp"
     lb_port           = "6515"
-    lb_protocol       = "tcp"
+    lb_protocol       = "ssl"
+    ssl_certificate_id = "${data.aws_acm_certificate.elb_external_cert.arn}"
   }
 
   listener {
     instance_port     = "6516"
     instance_protocol = "tcp"
     lb_port           = "6516"
-    lb_protocol       = "tcp"
+    lb_protocol       = "ssl"
+    ssl_certificate_id = "${data.aws_acm_certificate.elb_external_cert.arn}"
   }
 
   health_check {
