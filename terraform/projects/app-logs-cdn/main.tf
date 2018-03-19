@@ -53,10 +53,10 @@ data "aws_acm_certificate" "elb_external_cert" {
 }
 
 resource "aws_elb" "logs-cdn_external_elb" {
-  name                             = "${var.stackname}-logs-cdn"
-  subnets                          = ["${data.terraform_remote_state.infra_networking.public_subnet_ids}"]
-  security_groups                  = ["${data.terraform_remote_state.infra_security_groups.sg_offsite_ssh_id}"]
-  internal                         = "false"
+  name            = "${var.stackname}-logs-cdn"
+  subnets         = ["${data.terraform_remote_state.infra_networking.public_subnet_ids}"]
+  security_groups = ["${data.terraform_remote_state.infra_security_groups.sg_offsite_ssh_id}"]
+  internal        = "false"
 
   access_logs {
     bucket        = "${data.terraform_remote_state.infra_monitoring.aws_logging_bucket_id}"
